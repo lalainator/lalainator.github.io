@@ -187,7 +187,7 @@ body.touch #br{bottom:auto;top:90px}
 </div></div></div>
 
 <div id="guide"><div class="gBox"><canvas id="gCv" width="600" height="640"></canvas><div><h3>FIELD GUIDE: THE REAL LALA</h3><ul>
-  <li>Two grey cat ears, both standing up</li><li>Purple hair ties, two on each side</li><li>One red mark, on HER left cheek (your right)</li><li>Five purple stripes on her tail</li><li>Three toes on each paw. A small cat mouth, no teeth</li><li>Blinks slowly, top to bottom</li><li>Eyes squint in a light. They never shine</li><li>Purrs when petted, meows when called</li><li>Her tail is attached. Tug it and she flicks it away</li><li>Casts a shadow. Walks forwards. Does not stare</li><li>Does not follow you when you look away</li></ul><p class="dim">TAB or ESC to close</p></div></div></div>
+  <li>Two grey cat ears, both standing up</li><li>Purple hair ties, two on each side</li><li>One red mark, on HER left cheek (your right)</li><li>Five purple stripes on her tail</li><li>Three toes on each paw. A small cat mouth, no teeth</li><li>Blinks slowly, top to bottom</li><li>Eyes squint in a light. They never shine</li><li>Purrs when petted, meows when called</li><li>Her tail is attached. Tug it and she flicks it away</li><li>Casts a shadow. Walks forwards. Does not stare</li><li>Does not follow you when you look away</li><li>She never hums. If you hear the lullaby nearby, something is close</li></ul><p class="dim">TAB or ESC to close</p></div></div></div>
 
 <div id="note"><div class="paper"><div id="noteTxt"></div><button id="bNoteOk">Put it down</button></div></div>
 
@@ -1032,7 +1032,7 @@ function director(dt){
   if(ev==='stare'&&!guest()){let any=0;for(const l of G.L)if(!l.real&&['wander','idle'].includes(l.st)&&Math.hypot(l.x-P.x,l.y-P.y)<12){l.freezeT=2.2;any=1}if(any)SFX.whisper(0,.3)}
 }
 function updatePhantoms(dt){
-  const P=G.P;for(const p of G.ph){p.t+=dt;const d=Math.hypot(p.x-P.x,p.y-P.y);if(lit(p)){p.litT=(p.litT||0)+dt;if(p.litT>.35&&!p.gone){p.gone=1;p.t=p.life-.25;SFX.whisper(0,.25)}}if(d<3.2&&!p.gone){p.gone=1;p.t=p.life-.25}if(p.k==='me'){p.x+=Math.cos(p.a)*dt*1.2;p.y+=Math.sin(p.a)*dt*1.2}}
+  const P=G.P;for(const p of G.ph){p.t+=dt;const d=Math.hypot(p.x-P.x,p.y-P.y);if(!p.noLit&&lit(p)){p.litT=(p.litT||0)+dt;if(p.litT>(p.litMax||.35)&&!p.gone){p.gone=1;p.t=p.life-.25;SFX.whisper(0,.25)}}if(d<3.2&&!p.gone&&!p.noLit){p.gone=1;p.t=p.life-.25}if(p.k==='me'){p.x+=Math.cos(p.a)*dt*1.2;p.y+=Math.sin(p.a)*dt*1.2}}
   G.ph=G.ph.filter(p=>p.t<p.life);
 }
 // ------------------------------------------------------------------ main step
@@ -1092,7 +1092,7 @@ function drawWorld(){
     else if(o.k==='P')drawPlayer(o.sx,o.sy,cs);
     else if(o.k==='O')drawOther(o.o,o.sx,o.sy,cs);
     else if(o.k==='i')drawItem(o.it,o.sx,o.sy);
-    else if(o.k==='ph'){const p=o.p,al=clamp(Math.min(p.t*2,(p.life-p.t)*4),0,1)*.9;if(p.k==='lala')drawChar(g,o.sx,o.sy,cs,{outfit:'lala',anim:'idle',frame:0,yaw:worldYaw(P.x-p.x,P.y-p.y),look:{},t:G.t,alpha:al,blink:0});else drawChar(g,o.sx,o.sy,cs,{outfit:AVATARS[G.av].outfit,anim:'walk',frame:p.t*6,yaw:worldYaw(Math.cos(p.a),Math.sin(p.a)),look:{},t:G.t,alpha:al})}
+    else if(o.k==='ph'){const p=o.p,al=clamp(Math.min(p.t*2,(p.life-p.t)*4),0,1)*.9;drawPhantom(p,o.sx,o.sy,cs,al)}
   }
   // effects in world space
   for(const f of G.fx){const [sx,sy]=toS(f.x,f.y);
@@ -1139,15 +1139,15 @@ function drawItem(it,sx,sy){
 function drawDark(){
   const P=G.P,mw=mask.width,mh=mask.height,k=mw/V.w;
   mg.setTransform(1,0,0,1,0,0);mg.globalCompositeOperation='source-over';
-  mg.fillStyle=G.dawn?'rgba(14,0,4,.975)':'rgba(3,3,9,.965)';mg.fillRect(0,0,mw,mh);
+  mg.fillStyle=G.dawn?'rgba(14,0,4,.98)':`rgba(3,3,9,${.965+DR.dark*.022+(DR.black>0?.03:0)})`;mg.fillRect(0,0,mw,mh);
   mg.globalCompositeOperation='destination-out';mg.setTransform(k,0,0,k,0,0);
   const glow=(x,y,r,a,sq=.5)=>{const [sx,sy]=toS(x,y);mg.save();mg.translate(sx,sy);mg.scale(1,sq);const gr=mg.createRadialGradient(0,0,0,0,0,r);gr.addColorStop(0,`rgba(0,0,0,${a})`);gr.addColorStop(.55,`rgba(0,0,0,${a*.55})`);gr.addColorStop(1,'rgba(0,0,0,0)');mg.fillStyle=gr;mg.beginPath();mg.arc(0,0,r,0,TAU);mg.fill();mg.restore()};
-  glow(P.x,P.y,130*V.z,.75,.8);
+  glow(P.x,P.y,130*V.z*(1-.25*DR.dark)*(DR.black>0?.45:1),.75,.8);
   for(const l of W.lights){if(!l.on)continue;let a=.88;if(!l.warm&&((l.fl*7)%11>10.4))a=.3;glow(l.x,l.y-.6,l.r*TW*.5*V.z,a,.75)}
   for(const b of W.booths)if(b.ring>0)glow(b.x,b.y,70*V.z,.7,.7);
   for(const f of G.fx)if(f.k==='beam'&&f.t<.3)glow((f.x+f.x2)/2,(f.y+f.y2)/2,200*V.z,.8-f.t*2,.7);
   for(const it of G.items)glow(it.x,it.y,30*V.z,.5,.7);
-  let fl=P.light&&P.batt>0;if(fl&&(P.batt<.15||G.flickT>0)&&Math.random()<.3)fl=false;
+  let fl=P.light&&P.batt>0&&!(DR.black>0);if(fl&&(P.batt<.15||G.flickT>0)&&Math.random()<.3)fl=false;
   const cone=(P,range,n,a0)=>{const pts=[];
     for(let i=0;i<=n;i++){const a=P.aim-.46+.92*i/n,d=rayLen(P.x,P.y,a,range);pts.push(toS(P.x+Math.cos(a)*d,P.y+Math.sin(a)*d))}
     const [px,py]=toS(P.x,P.y),R=range*TW*.62*V.z;
@@ -1311,6 +1311,151 @@ function titleStep(dt){
   for(const L of W.lights)L.fl+=dt;
   if(G.mode==='select')drawCards();
 }
+
+'use strict';
+// ---- dread: layered ambience, zone sounds, and extra scares. Wraps earlier functions; everything here is local to each player.
+const DR={t:0,gust:.5,hush:1,hushT:0,ambT:6,padT:4,humT:20,ghostT:30,evT:22,lightT:35,breathT:0,black:0,inv:0,hud:0,eyes:[],motes:[],lastStep:0,dark:0,beat:0};
+// ------------------------------------------------------------------ sound building blocks
+function ambNodes(){
+  const C=AU.ctx;
+  // tense string tremolo, grows with danger
+  DR.tremG=C.createGain();DR.tremG.gain.value=0;const bp=C.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1100;bp.Q.value=.8;
+  const am=C.createGain();am.gain.value=.5;const lfo=C.createOscillator();lfo.frequency.value=8.5;const lg=C.createGain();lg.gain.value=.5;lfo.connect(lg);lg.connect(am.gain);lfo.start();
+  for(const f of[220,233.08,246.94,311.13]){const o=C.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=rnd(-12,12);const g=C.createGain();g.gain.value=.25;o.connect(g);g.connect(bp);o.start()}
+  bp.connect(am);am.connect(DR.tremG);DR.tremG.connect(AU.master);const tw=C.createGain();tw.gain.value=.6;DR.tremG.connect(tw);tw.connect(AU.verb);
+  // streetlight hum
+  DR.buzzG=C.createGain();DR.buzzG.gain.value=0;const bo=C.createOscillator();bo.type='square';bo.frequency.value=120;const bl=C.createBiquadFilter();bl.type='lowpass';bl.frequency.value=420;bo.connect(bl);bl.connect(DR.buzzG);DR.buzzG.connect(AU.master);bo.start();
+  // sub rumble that swells under the city
+  DR.subG=C.createGain();DR.subG.gain.value=0;const so=C.createOscillator();so.frequency.value=31;const so2=C.createOscillator();so2.frequency.value=31.7;so.connect(DR.subG);so2.connect(DR.subG);DR.subG.connect(AU.master);so.start();so2.start();
+}
+const _auInit=auInit;auInit=function(){const had=!!AU.ctx;_auInit();if(!had&&AU.ctx)try{ambNodes()}catch(e){console.error(e)}};
+const _auMood=auMood;auMood=function(d,w){if(!AU.on)return;_auMood(d*DR.hush,w*(.45+DR.gust*1.1)*DR.hush)};
+const tgt=(p,v)=>{if(p&&AU.on)p.setTargetAtTime(v,AU.ctx.currentTime,.25)};
+function swell(freqs,dur,o={}){ // slow pad / choir voice: attack and release over seconds
+  if(!AU.on)return;const C=AU.ctx,t=AU.ctx.currentTime+(o.at||0),g=C.createGain(),f=C.createBiquadFilter();f.type=o.ft||'lowpass';f.frequency.value=o.f||700;f.Q.value=o.q||.7;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(o.v||.03,t+dur*.4);g.gain.linearRampToValueAtTime(0,t+dur);f.connect(g);out(g,o.pan||0,o.wet===undefined?.8:o.wet);
+  for(const fr of freqs){for(const ty of o.types||['triangle','sawtooth']){const os=C.createOscillator();os.type=ty;os.frequency.value=fr;os.detune.value=rnd(-9,9);if(o.vib){const l=C.createOscillator(),lg=C.createGain();l.frequency.value=o.vib;lg.gain.value=fr*.012;l.connect(lg);lg.connect(os.frequency);l.start(t);l.stop(t+dur+.1)}const og=C.createGain();og.gain.value=ty==='sawtooth'?.35:1;os.connect(og);og.connect(f);os.start(t);os.stop(t+dur+.1)}}
+}
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+const AMB={
+  owl(p){tone(392,.42,{v:.05,pan:p,wet:.75,a:.06,to:349});tone(392,.28,{v:.04,pan:p,wet:.75,a:.05,to:349,at:.6});tone(370,.5,{v:.045,pan:p,wet:.75,a:.06,to:330,at:.95})},
+  crickets(p){for(let i=0;i<14;i++)tone(4300+rnd(250),.025,{v:.011,at:i*.06+(i>6?.45:0),pan:p,wet:.2})},
+  crows(p){for(let i=0;i<3;i++){noise(.18,{f:1400,q:3,v:.05,at:i*.34,pan:p,wet:.55});tone(680,.16,{type:'sawtooth',to:500,v:.018,at:i*.34,pan:p,wet:.55})}},
+  choir(p){const n=pick([[45,52,57],[44,51,56],[46,53,58]]);swell(n.map(mtof),7,{v:.028,f:900,q:4,ft:'bandpass',pan:p,types:['sawtooth'],vib:4.5})},
+  swing(p){for(let i=0;i<3;i++){noise(.55,{f:900,to:1350,q:9,v:.035,at:i*1.4,pan:p,wet:.5});tone(830,.45,{type:'sawtooth',to:640,v:.011,at:i*1.4+.25,pan:p,wet:.6})}},
+  chimes(p){const s=[1568,1760,2093,2349,2637,3136];for(let i=0;i<6;i++)tone(pick(s),2.6,{v:.016,at:i*rnd(.12,.3),pan:p,wet:.85,a:.002})},
+  howl(p){if(!AU.on)return;const C=AU.ctx,t=C.currentTime,o=C.createOscillator(),f=C.createBiquadFilter(),g=C.createGain(),l=C.createOscillator(),lg=C.createGain();o.type='sawtooth';o.frequency.setValueAtTime(470,t);o.frequency.linearRampToValueAtTime(730,t+1);o.frequency.linearRampToValueAtTime(430,t+2.8);l.frequency.value=5;lg.gain.value=9;l.connect(lg);lg.connect(o.frequency);f.type='bandpass';f.frequency.value=900;f.Q.value=2.2;o.connect(f);f.connect(g);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.035,t+.5);g.gain.linearRampToValueAtTime(0,t+2.9);out(g,p,.9);o.start(t);l.start(t);o.stop(t+3);l.stop(t+3)},
+  drips(p){for(let i=0;i<4;i++)tone(1300+rnd(900),.07,{to:2700,v:.03,at:i*rnd(.6,1.1),pan:p,wet:.65})},
+  creak(p){tone(175,1.3,{type:'sawtooth',to:118,v:.014,pan:p,wet:.6,a:.3})},
+  knock(p){for(let i=0;i<3;i++){tone(92,.16,{to:58,v:.14,at:i*.3,pan:p,wet:.55});noise(.05,{f:320,v:.06,at:i*.3,pan:p,wet:.4})}},
+  toll(p){[[110,.05],[220,.03],[277,.02],[330,.016],[440,.01]].forEach(([f,v])=>tone(f,6,{v,a:.002,wet:.95,pan:p}))},
+  scratch(p){for(let i=0;i<9;i++)noise(.05,{f:2600,q:4,v:.025,at:i*.07+(i>4?.5:0),pan:p,wet:.3})},
+  scream(p){tone(720,2.2,{type:'sawtooth',to:1150,v:.012,pan:p,wet:.97,a:.2});noise(2,{f:1600,q:2,v:.02,pan:p,wet:.97,a:.2})},
+  breath(p,v=.05){noise(.9,{f:650,q:1.4,v,a:.45,pan:p,wet:.15});noise(1.2,{f:480,q:1.2,v:v*.8,a:.2,at:1.05,pan:p,wet:.15})},
+  laugh(p){for(let i=0;i<5;i++)tone(620-i*25,.12,{type:'triangle',v:.012,at:i*.17,pan:p,wet:.95,to:560-i*25})},
+};
+const ZONEAMB={woods:['owl','crickets','crows','owl'],park:['owl','crickets','crows','creak'],graves:['choir','crows','toll','choir'],playground:['swing','chimes','laugh','swing'],market:['chimes','creak','scratch'],homes:['howl','knock','creak','scratch'],lot:['drips','scratch','creak','drips'],plaza:['toll','crickets','howl'],road:['howl','crickets','drips','toll']};
+// ------------------------------------------------------------------ ghost words
+const ghostEl=document.createElement('div');ghostEl.id='ghost';document.body.appendChild(ghostEl);
+const gs=document.createElement('style');gs.textContent='#ghost{position:fixed;inset:0;pointer-events:none;z-index:4;overflow:hidden}#ghost i{position:absolute;font-family:Georgia,serif;font-style:italic;color:#ddd3e4;letter-spacing:.2em;filter:blur(.6px);text-shadow:0 0 12px rgba(196,107,216,.5);transition:opacity 1.6s;opacity:0;white-space:nowrap}';document.head.appendChild(gs);
+function ghostWord(){
+  const nm=AVATARS[G.av].name.toLowerCase(),L=['turn around','she is not home','we know your name',nm+'...',nm+'? '+nm+'?','you missed one','lala lala lala','behind the bench','do not look at it','it is wearing her','it is wearing you','count them again','can you hear it breathing','she is right there','why did you hurt her','let us in'];
+  const e=document.createElement('i');e.textContent=pick(L);const edge=Math.random()<.5;e.style.left=(edge?rnd(4,22):rnd(60,80))+'%';e.style.top=rnd(18,78)+'%';e.style.fontSize=rnd(15,26)+'px';e.style.transform='rotate('+rnd(-6,6)+'deg)';ghostEl.appendChild(e);
+  requestAnimationFrame(()=>e.style.opacity=rnd(.25,.45));setTimeout(()=>e.style.opacity=0,2400);setTimeout(()=>e.remove(),4200);SFX.whisper(edge?-.7:.7,.16);
+}
+// ------------------------------------------------------------------ fog texture
+const fogC=mk(512,512);{const f=fogC.getContext('2d');for(let i=0;i<70;i++){const x=rnd(512),y=rnd(512),r=rnd(40,140);for(const[dx,dy]of[[0,0],[512,0],[-512,0],[0,512],[0,-512]]){const gr=f.createRadialGradient(x+dx,y+dy,0,x+dx,y+dy,r);gr.addColorStop(0,`rgba(200,200,215,${rnd(.05,.12)})`);gr.addColorStop(1,'rgba(200,200,215,0)');f.fillStyle=gr;f.fillRect(x+dx-r,y+dy-r,r*2,r*2)}}}
+// ------------------------------------------------------------------ per-frame
+const inPlay=()=>['play','inspect','cut','note','paused'].includes(G.mode)&&G.P&&G.L;
+const panOf=(x,y)=>clamp((x-y-(G.P.x-G.P.y))/7,-1,1);
+const _step=step;step=function(dt){_step(dt);try{dread(dt)}catch(e){console.error(e)}};
+function dread(dt){
+  DR.t+=dt;DR.gust=clamp(.5+.35*Math.sin(DR.t*.23)*Math.sin(DR.t*.071+1)+.15*Math.sin(DR.t*.9),0,1);
+  if(DR.hushT>0){DR.hushT-=dt;DR.hush=Math.max(0,DR.hush-dt*2.5)}else DR.hush=Math.min(1,DR.hush+dt*.6);
+  if(G.mode==='title'||G.mode==='select'||G.mode==='opts'){if(AU.on){auMood(.06,.16);tgt(DR.tremG&&DR.tremG.gain,0);tgt(DR.buzzG&&DR.buzzG.gain,.012);DR.ambT-=dt;if(DR.ambT<0){DR.ambT=rnd(7,14);AMB[pick(['owl','howl','crickets','toll','creak','choir'])](rnd(-.8,.8))}}return}
+  if(!inPlay())return;
+  const P=G.P;DR.dark=clamp(1-G.tLeft/G.time,0,1);
+  // continuous layers
+  const ins=G.ins&&!G.ins.l.real?G.ins.l.aware:0,thr=Math.max(G.thr||0,ins*.9);
+  if(AU.on&&DR.tremG){
+    tgt(DR.tremG.gain,(thr>.25?(thr-.25)*.11:0)*DR.hush);
+    let near=0;for(const l of W.lights)if(l.on){const d=Math.hypot(l.x-P.x,l.y-P.y);near=Math.max(near,clamp(1-d/4,0,1)*(((l.fl*7)%11>10.4)?.3:1))}tgt(DR.buzzG.gain,near*.022*DR.hush);
+    tgt(DR.subG.gain,(.05+DR.dark*.08+thr*.1)*DR.hush);
+  }
+  // slow dissonant chords
+  DR.padT-=dt;if(DR.padT<0&&DR.hush>.5){DR.padT=rnd(13,24);const ch=pick([[45,48,52,53],[41,44,48,49],[43,46,50,51],[40,43,47,48],[38,41,45,46]]);if(DR.dark>.5||G.dawn)ch.push(ch[0]+6);swell(ch.map(mtof),rnd(10,14),{v:.012+DR.dark*.008,f:650,pan:rnd(-.3,.3)})}
+  // sounds of the part of town you are in
+  DR.ambT-=dt;if(DR.ambT<0&&DR.hush>.5){DR.ambT=rnd(5,11);const z=zoneAt(P.x+rnd(-4,4),P.y+rnd(-4,4)),list=ZONEAMB[z]||ZONEAMB.road;AMB[pick(list)](rnd(-.9,.9));if(G.night>=2&&Math.random()<.08)AMB.scream(rnd(-1,1))}
+  // footsteps that copy yours while something follows
+  if(P.stepD<DR.lastStep-.2){const st=G.L.find(l=>l.st==='stalk'&&Math.hypot(l.x-P.x,l.y-P.y)<11);if(st)noise(.06,{f:430,q:2,v:.06,pan:panOf(st.x,st.y),at:.24,wet:.2})}DR.lastStep=P.stepD;
+  // fakes hum the lullaby; real ones purr
+  DR.humT-=dt;if(DR.humT<0){DR.humT=rnd(14,26);let best=null,bd=7;for(const l of G.L){if(!['wander','idle','stalk'].includes(l.st))continue;const d=Math.hypot(l.x-P.x,l.y-P.y);if(d<bd){bd=d;best=l}}
+    if(best){if(!best.real)musicBox({speed:.62,det:1.3,v:.028*(1-bd/7)+.006,pan:panOf(best.x,best.y)});else SFX.purr(.05*(1-bd/7))}}
+  // the player breathes hard when out of breath
+  DR.breathT-=dt;if(P.stam<.4&&DR.breathT<0){DR.breathT=1.15;AMB.breath(0,.05*(1-P.stam/.4)+.01)}
+  // streetlights die one by one
+  DR.lightT-=dt;if(DR.lightT<0){DR.lightT=rnd(28,42)-G.night*2;const ls=W.lights.filter(l=>l.on&&!l.warm&&Math.hypot(l.x-P.x,l.y-P.y)<14);if(ls.length){const l=pick(ls);l.on=0;if(Math.hypot(l.x-P.x,l.y-P.y)<9){SFX.pop();G.fx.push({k:'spark',x:l.x,y:l.y,t:0})}}}
+  // whispered words at the edge of the screen
+  DR.ghostT-=dt;if(DR.ghostT<0&&G.mode==='play'){DR.ghostT=rnd(22,45)-G.night*2;ghostWord()}
+  // bigger scares
+  DR.evT-=dt;if(DR.evT<0&&G.mode==='play'&&P.hurtT<=0){DR.evT=rnd(18,32)-G.night*1.5;dreadEvent()}
+  if(DR.black>0){DR.black-=dt;if(DR.black<=0)blackoutEnd()}
+  DR.inv=Math.max(0,DR.inv-dt);DR.hud=Math.max(0,DR.hud-dt);
+  for(const e of DR.eyes){e.t+=dt;if(lit({x:e.p.x,y:e.p.y+.9})){e.t=Math.max(e.t,e.life-.15)}}DR.eyes=DR.eyes.filter(e=>e.t<e.life);
+  // a frame of something wrong when it is close
+  if(G.thr>.6&&Math.random()<dt*.25&&G.opts.flash&&G.opts.scare==='full')DR.inv=.05;
+}
+function dreadEvent(){
+  const P=G.P,ev=pick(['blackout','tall','tall','peek','eyes','eyes','knock','breath','hud'].filter(e=>G.night>=2||!['tall','blackout'].includes(e)));
+  if(ev==='blackout'){DR.hushT=.7;DR.black=1.8;SFX.click()}
+  if(ev==='tall'){const a=P.aim+rnd(-.25,.25),d=rnd(6.5,8);const x=P.x+Math.cos(a)*d,y=P.y+Math.sin(a)*d;if(!isSolid(x,y))G.ph.push({k:'tall',x,y,t:0,life:8,litMax:1.1})}
+  if(ev==='peek'){const b=W.props.filter(p=>p.big&&Math.hypot(p.x-P.x,p.y-P.y)<9&&Math.hypot(p.x-P.x,p.y-P.y)>4);if(b.length){const p=pick(b),s=Math.random()<.5;const x=p.x+(s?1.35:-.2),y=p.y+(s?-.2:1.35);if(!isSolid(x,y))G.ph.push({k:'peek',x,y,t:0,life:7,s,litMax:.8})}}
+  if(ev==='eyes'){const b=W.props.filter(p=>p.big&&/^house/.test(p.n)&&Math.hypot(p.x-P.x,p.y-P.y)<10&&Math.hypot(p.x-P.x,p.y-P.y)>3&&!lit({x:p.x,y:p.y+.9}));if(b.length){DR.eyes.push({p:pick(b),t:0,life:rnd(3,6),ox:rnd(-.25,.25)});SFX.whisper(0,.08)}}
+  if(ev==='knock'){const b=W.props.find(p=>p.big&&Math.hypot(p.x-P.x,p.y-P.y)<8);AMB.knock(b?panOf(b.x,b.y):rnd(-1,1))}
+  if(ev==='breath'){AMB.breath(rnd(-.3,.3),.08);setTimeout(()=>G.mode==='play'&&ghostWord(),1800)}
+  if(ev==='hud')DR.hud=.45;
+}
+function blackoutEnd(){
+  const P=G.P;SFX.click();
+  if(G.opts.scare==='full'){const x=P.x+Math.cos(P.aim)*1.4,y=P.y+Math.sin(P.aim)*1.4;{G.ph.push({k:'close',x,y,t:.4,life:1.05,noLit:1});SFX.sting();SFX.heart(.5);G.shake=.35;if(G.opts.flash)DR.inv=.06}}
+  else SFX.heart(.35);
+}
+// ------------------------------------------------------------------ drawing
+function drawPhantom(p,sx,sy,cs,al){
+  const P=G.P;
+  if(p.k==='tall'){drawWalker(g,sx,sy,cs*1.3,{t:G.t,phase:0,alpha:al*.95,dir:(P.x-P.y)<(p.x-p.y)?-1:1});return}
+  if(p.k==='peek'){drawChar(g,sx,sy,cs,{outfit:'lala',anim:'idle',frame:0,yaw:worldYaw(P.x-p.x,P.y-p.y),look:{},t:G.t,alpha:al,blink:0,tilt:p.s?.55:-.55});return}
+  if(p.k==='close'){drawChar(g,sx+rnd(-2,2),sy,cs*1.08,{outfit:'lala',anim:'idle',frame:0,yaw:worldYaw(P.x-p.x,P.y-p.y),look:{teeth:1},t:G.t,alpha:Math.min(1,al*1.4),blink:0,grin:1,sy:1.08});return}
+  if(p.k==='lala')drawChar(g,sx,sy,cs,{outfit:'lala',anim:'idle',frame:0,yaw:worldYaw(P.x-p.x,P.y-p.y),look:{},t:G.t,alpha:al,blink:0});
+  else drawChar(g,sx,sy,cs,{outfit:AVATARS[G.av].outfit,anim:'walk',frame:p.t*6,yaw:worldYaw(Math.cos(p.a),Math.sin(p.a)),look:{},t:G.t,alpha:al});
+}
+const _drawWorld=drawWorld;drawWorld=function(){_drawWorld();if(!G.P)return;
+  // drifting mist, anchored to the ground so it slides as you walk
+  g.save();g.globalCompositeOperation='screen';g.globalAlpha=.55+DR.dark*.25;const ox=((-V.x*.6+DR.t*14)%1024+1024)%1024,oy=((-V.y*.6+DR.t*5)%1024+1024)%1024;g.translate(-ox,-oy);g.fillStyle=g.createPattern(fogC,'repeat');g.scale(2,2);g.fillRect(0,0,V.w/2+520,V.h/2+520);g.restore();
+  g.save();g.globalCompositeOperation='screen';g.globalAlpha=.3;const ox2=((-V.x*.9-DR.t*9)%512+512)%512;g.translate(-ox2,-((-V.y*.9)%512+512)%512);g.fillStyle=g.createPattern(fogC,'repeat');g.fillRect(0,0,V.w+512,V.h+512);g.restore();
+};
+const _drawOverlays=drawOverlays;drawOverlays=function(){_drawOverlays();if(!G.P||!W.lights)return;const P=G.P,z=V.z;
+  // moths around lamps that still work
+  for(const l of W.lights){if(!l.on||l.warm)continue;const [sx,sy]=toS(l.x,l.y-.6);if(sx<-50||sx>V.w+50||sy<-200||sy>V.h+200)continue;for(let i=0;i<4;i++){const a=DR.t*(2+i*.7)+i*1.7+l.fl,r=(14+i*6)*z;dot(g,sx+Math.cos(a)*r,sy-118*z+Math.sin(a*1.3)*r*.6,1.4*z,1.4*z,'rgba(255,244,210,.75)',0)}}
+  // dust in the flashlight beam
+  if(P.light&&P.batt>0&&!(DR.black>0)){if(DR.motes.length<40)for(let i=0;i<40;i++)DR.motes.push({a:rnd(-.45,.45),d:rnd(1,6.5),h:rnd(10,90),s:rnd(.2,.6),o:rnd(TAU)});
+    for(const m of DR.motes){m.d+=m.s*.004;if(m.d>6.5)m.d=1;const a=P.aim+m.a,x=P.x+Math.cos(a)*m.d,y=P.y+Math.sin(a)*m.d;const [sx,sy]=toS(x,y);dot(g,sx+Math.sin(DR.t+m.o)*6,sy-m.h*z+Math.cos(DR.t*.7+m.o)*5,1.2*z,1.2*z,`rgba(255,250,230,${.18*(1-m.d/6.5)})`,0)}}
+  // eyes in house windows
+  for(const e of DR.eyes){const [sx,sy]=toS(e.p.x,e.p.y),a=clamp(Math.min(e.t*2,(e.life-e.t)*4),0,1),bl=(e.t%3)<.12?.15:1;const sp=ART.spr[e.p.n],y=sy-(sp?sp.ay:200)*e.p.s*z*.45,x=sx+e.ox*60*z;for(const s of[-1,1]){dot(g,x+s*5*z,y,2.6*z,2.6*z*bl,`rgba(255,60,70,${a*.9})`,0);dot(g,x+s*5*z,y,1*z,1*z*bl,`rgba(255,240,240,${a})`,0)}}
+  // glinting eyes of things standing in the dark
+  for(const p of G.ph){if(!['tall','peek'].includes(p.k)||lit(p))continue;const [sx,sy]=toS(p.x,p.y),a=clamp(Math.min(p.t*2,(p.life-p.t)*4),0,1),h=p.k==='tall'?205:92;for(const s of[-1,1])dot(g,sx+s*5*z,sy-h*z*.6/.6*charScale()/V.z,1.8*z,2.2*z,`rgba(235,240,255,${a*.8})`,0)}
+};
+const _post=post;post=function(scare){_post(scare);if(scare||!G.P)return;const w=V.w,h=V.h,thr=G.thr||0;
+  // vignette that throbs with the heartbeat
+  if(thr>.15){const ph=(G.t*lerp(1.2,2.4,thr))%1,pulse=Math.pow(Math.max(0,1-ph*3),2);const vg=g.createRadialGradient(w/2,h/2,Math.min(w,h)*.2,w/2,h/2,Math.max(w,h)*.7);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,`rgba(70,0,10,${thr*.55*pulse})`);g.fillStyle=vg;g.fillRect(0,0,w,h)}
+  // ghosting and tearing when something is close
+  if(thr>.4){const d=V.dpr||1;g.save();g.globalAlpha=(thr-.4)*.3;g.globalCompositeOperation='screen';g.drawImage(cv,rnd(-8,8)*thr,0,w,h);g.restore();
+    if(Math.random()<thr*.25){const y=rnd(h),hh=rnd(6,40);g.drawImage(cv,0,y*d,cv.width,hh*d,rnd(-30,30)*thr,y,w,hh)}}
+  // darkness thickens through the night
+  if(DR.dark>0){g.fillStyle=`rgba(0,0,0,${DR.dark*.18})`;g.fillRect(0,0,w,h)}
+  if(DR.inv>0){g.save();g.globalCompositeOperation='difference';g.fillStyle='#fff';g.fillRect(0,0,w,h);g.restore()}
+};
+const _updHUD=updHUD;updHUD=function(){_updHUD();if(DR.hud>0){$('#hCount').textContent=pick(['SHE IS HOME','FAKES ? / ?','UNMASKED 9 / 9','LOOK BEHIND YOU']);if(Math.random()<.5)$('#hLives').style.opacity=.2}else $('#hLives').style.opacity=''};
 
 'use strict';
 let last=0;
